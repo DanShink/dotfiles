@@ -10,6 +10,15 @@
 
 (load-theme 'modus-vivendi)
 
+(unless package-archive-contents
+  (package-refresh-contents))
+
+(unless (package-installed-p 'use-package)
+  (package-install 'use-package))
+
+(require 'use-package)
+(setq use-package-always-ensure t)
+
 ;; Optmizations
 ;; Only read left to right
 (setq-default bidi-display-reordering 'left-to-right
@@ -47,3 +56,33 @@
 
 ;; Font
 (set-face-attribute 'default nil :font "JetBrains Mono-12")
+
+(setq fast-but-imprecise-scrolling t)
+
+(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+
+;; Load the custom file if it exists, but don't throw an error if it doesn't
+(when (file-exists-p custom-file)
+  (load custom-file))
+
+(require 'package)
+
+(setq package-archives
+      '(("gnu"    . "https://elpa.gnu.org/packages/")
+        ("nongnu" . "https://elpa.nongnu.org/nongnu/")
+        ("melpa stable"  . "https://stable.melpa.org/packages/")
+	("melpa" . "https://melpa.org/packages/")))
+
+(setq package-archive-priorities
+      '(("gnu" . 10)
+	("nongnu" . 5)
+	("melpa stable" . 5)
+	("melpa" . 0)))
+
+(package-initialize)
+
+(use-package magit)
+
+
+
+
