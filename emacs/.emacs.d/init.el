@@ -8,6 +8,9 @@
 ;; Startup Splash Screen Every Time (Client Mode)
 (add-hook 'server-after-make-frame-hook #'about-emacs)
 
+(tool-bar-mode -1)
+(menu-bar-mode -1)
+(scroll-bar-mode -1)
 (load-theme 'modus-vivendi)
 
 ;; Optmizations
@@ -92,3 +95,10 @@
   :pin "melpa stable")
 
 (use-package magit)
+
+(use-package corfu
+  :init
+  (global-corfu-mode))
+
+(use-package vertico
+  :init (vertico-mode))
