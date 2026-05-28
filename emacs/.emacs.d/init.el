@@ -102,3 +102,35 @@
 
 (use-package vertico
   :init (vertico-mode))
+
+(use-package vterm)
+
+(setq treesit-language-source-alist
+      '((javascript . ("https://github.com/tree-sitter/tree-sitter-javascript"))
+        (typescript . ("https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src"))
+        (tsx        . ("https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src"))
+        (css        . ("https://github.com/tree-sitter/tree-sitter-css"))
+        (html       . ("https://github.com/tree-sitter/tree-sitter-html"))
+        (json       . ("https://github.com/tree-sitter/tree-sitter-json"))))
+
+;; Install any missing grammars automatically
+(mapc #'treesit-install-language-grammar
+      (seq-filter
+       (lambda (lang)
+         (not (treesit-language-available-p lang)))
+       (mapcar #'car treesit-language-source-alist)))
+
+;; Remap old modes to tree-sitter modes
+(setq major-mode-remap-alist
+      '((javascript-mode . js-ts-mode)
+        (typescript-mode . typescript-ts-mode)
+        (css-mode        . css-ts-mode)
+        (json-mode       . json-ts-mode)))
+
+;; Hook eglot into ts modes
+(use-package eglot
+  :ensure nil  ;; built-in
+  :hook ((js-ts-mode         . eglot-ensure)
+         (typescript-ts-mode . eglot-ensure))
+  :custom
+  (eglot-autoshutdown t))
