@@ -11,7 +11,6 @@
 (tool-bar-mode -1)
 (menu-bar-mode -1)
 (scroll-bar-mode -1)
-(load-theme 'modus-vivendi)
 
 ;; Optmizations
 ;; Only read left to right
@@ -85,6 +84,10 @@
 
 (require 'use-package)
 (setq use-package-always-ensure t)
+
+(use-package doom-themes)
+(load-theme 'doom-one)
+
 
 ;; Force transient from archive if stuck on old built-in
 (unless (assq 'transient package-alist)
