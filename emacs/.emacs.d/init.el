@@ -10,15 +10,6 @@
 
 (load-theme 'modus-vivendi)
 
-(unless package-archive-contents
-  (package-refresh-contents))
-
-(unless (package-installed-p 'use-package)
-  (package-install 'use-package))
-
-(require 'use-package)
-(setq use-package-always-ensure t)
-
 ;; Optmizations
 ;; Only read left to right
 (setq-default bidi-display-reordering 'left-to-right
@@ -52,10 +43,11 @@
 (global-set-key (kbd "C-x 1") #'toggle-delete-other-windows)
 
 ;; Global line numbers
+(setq display-line-numbers-type 'relative)
 (global-display-line-numbers-mode 1)
 
 ;; Font
-(set-face-attribute 'default nil :font "JetBrains Mono-12")
+(set-face-attribute 'default nil :font "JetBrainsMono Nerd Font-12")
 
 (setq fast-but-imprecise-scrolling t)
 
@@ -65,6 +57,7 @@
 (when (file-exists-p custom-file)
   (load custom-file))
 
+;; Package Management
 (require 'package)
 
 (setq package-archives
@@ -76,13 +69,26 @@
 (setq package-archive-priorities
       '(("gnu" . 10)
 	("nongnu" . 5)
-	("melpa stable" . 5)
+	("melpa stable" . 3)
 	("melpa" . 0)))
-
+(setq package-install-upgrade-built-in t)
 (package-initialize)
 
+(unless package-archive-contents
+  (package-refresh-contents))
+  
+(unless (package-installed-p 'use-package)
+  (package-install 'use-package))
+
+(require 'use-package)
+(setq use-package-always-ensure t)
+
+;; Force transient from archive if stuck on old built-in
+(unless (assq 'transient package-alist)
+  (package-refresh-contents)
+  (package-install 'transient))
+
+(use-package transient
+  :pin "melpa stable")
+
 (use-package magit)
-
-
-
-
