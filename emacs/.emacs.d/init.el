@@ -135,6 +135,10 @@
 (use-package vertico
   :init (vertico-mode))
 
+(use-package marginalia
+  :init
+  (marginalia-mode))
+
 (use-package vterm)
 
 (setq treesit-language-source-alist
@@ -143,7 +147,9 @@
         (tsx        . ("https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src"))
         (css        . ("https://github.com/tree-sitter/tree-sitter-css"))
         (html       . ("https://github.com/tree-sitter/tree-sitter-html"))
-        (json       . ("https://github.com/tree-sitter/tree-sitter-json"))))
+        (json       . ("https://github.com/tree-sitter/tree-sitter-json"))
+	(c          . ("https://github.com/tree-sitter/tree-sitter-c"))
+	(cpp        . ("https://github.com/tree-sitter/tree-sitter-cpp"))))
 
 ;; Install any missing grammars automatically
 (mapc #'treesit-install-language-grammar
@@ -157,7 +163,9 @@
       '((javascript-mode . js-ts-mode)
         (typescript-mode . typescript-ts-mode)
         (css-mode        . css-ts-mode)
-        (json-mode       . json-ts-mode)))
+        (json-mode       . json-ts-mode)
+	(c-mode          . c-ts-mode)
+	(c++-mode        . c++-ts-mode)))
 
 ;; Hook eglot into ts modes
 (use-package eglot
@@ -166,6 +174,20 @@
          (typescript-ts-mode . eglot-ensure))
   :custom
   (eglot-autoshutdown t))
+
+(use-package dumb-jump
+  :init
+  (add-hook 'xref-backend-functions #'dumb-jump-xref-activate)
+  :config
+  (setq dumb-jump-force-searcher 'rg))
+
+(use-package dotenv-mode
+  :mode ("\\.env\\..*\\'" . dotenv-mode)
+  :config
+  (add-hook 'dotenv-mode-hook
+	    (lambda()
+	      (setq imenu-generic-expression
+		    '(("Variables" "^[[:space:]]*\\([A-Za-z0-9_]+\\)[[:space:]]*=" 1))))))
 
 ;; Show startup time and garbage collections
 (add-hook 'emacs-startup-hook
