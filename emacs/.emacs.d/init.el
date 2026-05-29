@@ -95,13 +95,42 @@
   (package-install 'transient))
 
 (use-package transient
-  :pin "melpa stable")
+  :pin "melpa stable"
+  :defer t)
 
-(use-package magit)
+(use-package magit
+  :defer t)
 
 (use-package corfu
+  :custom
+  (corfu-cycle t)
   :init
   (global-corfu-mode))
+
+(use-package prescient
+  :config
+  (prescient-persist-mode 1))
+
+(use-package corfu-prescient
+  :after (corfu prescient)
+  :config
+  (corfu-prescient-mode 1))
+
+(use-package cape
+  :init
+  (add-to-list 'completion-at-point-functions #'cape-file)
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+  (add-to-list 'completion-at-point-functions #'cape-keyword)
+  (add-to-list 'completion-at-point-functions #'cape-symbol))
+
+(use-package nerd-icons)
+(use-package nerd-icons-corfu
+  :after corfu
+  :config
+  (add-to-list 'corfu-margin-formatters
+	       #'nerd-icons-corfu-formatter))
+(use-package nerd-icons-dired
+  :defer t)
 
 (use-package vertico
   :init (vertico-mode))
@@ -137,3 +166,17 @@
          (typescript-ts-mode . eglot-ensure))
   :custom
   (eglot-autoshutdown t))
+
+;; Show startup time and garbage collections
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (message "Emacs loaded in %.2f seconds with %d garbage collections."
+                     (float-time
+                      (time-subtract after-init-time before-init-time))
+                     gcs-done)))
+
+(defun open-init-file ()
+  (interactive)
+  (find-file user-init-file))
+
+(global-set-key (kbd "C-c e") #'open-init-file)
