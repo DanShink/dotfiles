@@ -104,8 +104,16 @@
 (use-package corfu
   :custom
   (corfu-cycle t)
+  (corfu-auto t)
+  (corfu-auto-delay 0.15)
+  (corfu-auto-prefix 2)
+  (corfu-preview-current nil)
+  (corfu-preselect 'prompt)
+  (corfu-quit-no-match 'separator)
+  (corfu-on-exact-match nil)
   :init
-  (global-corfu-mode))
+  (global-corfu-mode)
+  (corfu-history-mode))
 
 (use-package prescient
   :config
@@ -119,9 +127,15 @@
 (use-package cape
   :init
   (add-to-list 'completion-at-point-functions #'cape-file)
-  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
   (add-to-list 'completion-at-point-functions #'cape-keyword)
-  (add-to-list 'completion-at-point-functions #'cape-symbol))
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev))
+
+(use-package orderless
+  :custom
+  (completion-styles '(orderless basic))
+  (completion-category-defaults nil)
+  (completion-category-overrides
+   '((file (styles basic partial-completion)))))
 
 (use-package nerd-icons)
 (use-package nerd-icons-corfu
@@ -138,6 +152,12 @@
 (use-package marginalia
   :init
   (marginalia-mode))
+
+(use-package consult
+  :bind
+  (("C-s" . consult-line)
+   ("C-x b" . consult-buffer)
+   ("M-y" . consult-yank-pop)))
 
 (use-package vterm)
 
@@ -189,6 +209,18 @@
 	      (setq imenu-generic-expression
 		    '(("Variables" "^[[:space:]]*\\([A-Za-z0-9_]+\\)[[:space:]]*=" 1))))))
 
+(use-package yasnippet
+  :config
+  (yas-global-mode 1))
+
+(use-package which-key
+  :init
+  (which-key-mode))
+
+(use-package editorconfig
+  :config
+  (editorconfig-mode 1))
+
 ;; Show startup time and garbage collections
 (add-hook 'emacs-startup-hook
           (lambda ()
@@ -202,3 +234,25 @@
   (find-file user-init-file))
 
 (global-set-key (kbd "C-c e") #'open-init-file)
+
+(defvar highlight-codetags-keywords
+  '(("\\<\\(TODO\\|FIXME\\|BUG\\|XXX\\)\\>" 1 font-lock-warning-face prepend)
+    ("\\<\\(NOTE\\|HACK\\)\\>" 1 font-lock-doc-face prepend)))
+
+(define-minor-mode highlight-codetags-local-mode
+  "Highlight codetags like TODO, FIXME..."
+  :global nil
+  (if highlight-codetags-local-mode
+      (font-lock-add-keywords nil highlight-codetags-keywords)
+    (font-lock-remove-keywords nil highlight-codetags-keywords))
+
+  ;; Fontify the current buffer
+  (when (bound-and-true-p font-lock-mode)
+    (if (fboundp 'font-lock-flush)
+        (font-lock-flush)
+      (with-no-warnings (font-lock-fontify-buffer)))))
+
+(add-hook 'prog-mode-hook #'highlight-codetags-local-mode)
+
+
+
