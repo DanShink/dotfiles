@@ -88,7 +88,6 @@
 (use-package doom-themes)
 (load-theme 'doom-one)
 
-
 ;; Force transient from archive if stuck on old built-in
 (unless (assq 'transient package-alist)
   (package-refresh-contents)
@@ -161,6 +160,8 @@
 
 (use-package vterm)
 
+(use-package jtsx)
+
 (setq treesit-language-source-alist
       '((javascript . ("https://github.com/tree-sitter/tree-sitter-javascript"))
         (typescript . ("https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src"))
@@ -180,7 +181,7 @@
 
 ;; Remap old modes to tree-sitter modes
 (setq major-mode-remap-alist
-      '((javascript-mode . js-ts-mode)
+      '((javascript-mode . jtsx-jsx-mode)
         (typescript-mode . typescript-ts-mode)
         (css-mode        . css-ts-mode)
         (json-mode       . json-ts-mode)
@@ -190,10 +191,11 @@
 ;; Hook eglot into ts modes
 (use-package eglot
   :ensure nil  ;; built-in
-  :hook ((js-ts-mode         . eglot-ensure)
+  :hook ((jtsx-jsx-mode      . eglot-ensure)
          (typescript-ts-mode . eglot-ensure))
   :custom
   (eglot-autoshutdown t))
+
 
 (use-package dumb-jump
   :init
@@ -202,6 +204,7 @@
   (setq dumb-jump-force-searcher 'rg))
 
 (use-package dotenv-mode
+  :defer t
   :mode ("\\.env\\..*\\'" . dotenv-mode)
   :config
   (add-hook 'dotenv-mode-hook
@@ -221,6 +224,40 @@
   :config
   (editorconfig-mode 1))
 
+(use-package evil
+  :init
+  (setq evil-default-state 'emacs
+        evil-want-C-w-in-emacs-state t
+        evil-want-C-w-delete nil
+        evil-want-Y-yank-to-eol t
+        evil-want-C-u-scroll t
+        evil-vsplit-window-right t
+        evil-split-window-below t
+        evil-undo-system 'undo-redo
+        evil-symbol-word-search t
+        evil-kill-on-visual-paste nil
+	evil-shift-width 0)
+  :config
+  (evil-mode 1)
+  (evil-set-initial-state 'prog-mode 'normal)
+  (evil-set-initial-state 'text-mode 'normal)
+  (evil-set-initial-state 'conf-mode 'normal)
+  (evil-set-initial-state 'fundamental-mode 'normal)
+  (evil-set-initial-state 'git-commit-mode 'emacs)
+  (defalias #'forward-evil-word #'forward-evil-symbol))
+
+(use-package evil-surround
+  :after evil
+  :config (global-evil-surround-mode 1))
+
+(use-package projectile
+  :init
+  (projectile-mode +1)
+  (setq projectile-project-search-path '("~/Documents/projects"))
+  (setq projectile-completion-system 'default)
+  :bind-keymap
+  ("C-c p" . projectile-command-map))
+
 ;; Show startup time and garbage collections
 (add-hook 'emacs-startup-hook
           (lambda ()
@@ -230,6 +267,7 @@
                      gcs-done)))
 
 (defun open-init-file ()
+  "This function opens the init.el file."
   (interactive)
   (find-file user-init-file))
 
