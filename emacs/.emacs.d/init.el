@@ -222,7 +222,10 @@
 
 (use-package editorconfig
   :config
-  (editorconfig-mode 1))
+  (editorconfig-mode 1)
+  (add-to-list 'editorconfig-indentation-alist
+	       '(jtsx-jsx-mode js-indent-level))
+  (add-hook 'jtsx-jsx-mode-hook #'editorconfig-apply t))
 
 (use-package evil
   :init
@@ -235,8 +238,7 @@
         evil-split-window-below t
         evil-undo-system 'undo-redo
         evil-symbol-word-search t
-        evil-kill-on-visual-paste nil
-	evil-shift-width 0)
+        evil-kill-on-visual-paste nil)
   :config
   (evil-mode 1)
   (evil-set-initial-state 'prog-mode 'normal)
@@ -291,6 +293,3 @@
       (with-no-warnings (font-lock-fontify-buffer)))))
 
 (add-hook 'prog-mode-hook #'highlight-codetags-local-mode)
-
-
-
