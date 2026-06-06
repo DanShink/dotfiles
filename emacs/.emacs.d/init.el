@@ -1,9 +1,10 @@
+
 ;;; init.el --- Emacs configuration -*- lexical-binding: t; -*-
 
 ;; macOS GUI Emacs PATH fix
-(when (eq system-type 'darwin)
-  (setq exec-path '("/opt/homebrew/bin" "/usr/local/bin" "/usr/bin" "/bin"))
-  (setenv "PATH" (string-join exec-path ":")))
+;; (when (eq system-type 'darwin)
+;;   (setq exec-path '("/opt/homebrew/bin" "/usr/local/bin" "/usr/bin" "/bin"))
+;;   (setenv "PATH" (string-join exec-path ":")))
 
 ;; Startup Splash Screen Every Time (Client Mode)
 (add-hook 'server-after-make-frame-hook #'about-emacs)
@@ -85,8 +86,8 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
-(use-package doom-themes)
-(load-theme 'doom-one)
+(use-package catppuccin-theme)
+(load-theme 'catppuccin)
 
 ;; Force transient from archive if stuck on old built-in
 (unless (assq 'transient package-alist)
