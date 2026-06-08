@@ -86,8 +86,12 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
-(use-package catppuccin-theme)
-(load-theme 'catppuccin)
+(use-package catppuccin-theme
+  :pin "melpa"
+  :init
+  (setq catppuccin-flavor 'frappe)
+  :config
+  (load-theme 'catppuccin t))
 
 ;; Force transient from archive if stuck on old built-in
 (unless (assq 'transient package-alist)
