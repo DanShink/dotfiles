@@ -1,4 +1,3 @@
-
 ;;; init.el --- Emacs configuration -*- lexical-binding: t; -*-
 
 ;; macOS GUI Emacs PATH fix
@@ -86,12 +85,13 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
-(use-package catppuccin-theme
-  :pin "melpa"
-  :init
-  (setq catppuccin-flavor 'frappe)
-  :config
-  (load-theme 'catppuccin t))
+;; (use-package catppuccin-theme
+;;   :pin "melpa"
+;;   :init
+;;   (setq catppuccin-flavor 'frappe)
+;;   :config
+;;   (load-theme 'catppuccin t))
+(load-theme 'modus-vivendi)
 
 ;; Force transient from archive if stuck on old built-in
 (unless (assq 'transient package-alist)
@@ -115,9 +115,17 @@
   (corfu-preselect 'prompt)
   (corfu-quit-no-match 'separator)
   (corfu-on-exact-match nil)
+  :bind
+  (:map corfu-map
+        ("<tab>"     . corfu-next)
+        ("<backtab>" . corfu-previous)
+        ("<escape>"  . corfu-quit)
+        ("<return>"  . corfu-insert)
+        ("C-g"       . corfu-quit))
   :init
   (global-corfu-mode)
-  (corfu-history-mode))
+  (corfu-history-mode)
+  (corfu-popupinfo-mode))
 
 (use-package prescient
   :config
@@ -151,7 +159,9 @@
   :defer t)
 
 (use-package vertico
-  :init (vertico-mode))
+  :init (vertico-mode)
+  :custom
+  (vertico-cycle t))
 
 (use-package marginalia
   :init
@@ -167,6 +177,7 @@
 
 (use-package jtsx)
 
+(setq treesit-font-lock-level 4) 
 (setq treesit-language-source-alist
       '((javascript . ("https://github.com/tree-sitter/tree-sitter-javascript"))
         (typescript . ("https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src"))
@@ -201,6 +212,12 @@
   :custom
   (eglot-autoshutdown t))
 
+;; Eslint for javascript projects
+(use-package flymake-eslint
+  :init
+  (setq flymake-eslint-executable-name "eslint_d")
+  :hook
+  (jtsx-jsx-mode . flymake-eslint-enable))
 
 (use-package dumb-jump
   :init
@@ -278,7 +295,15 @@
   (interactive)
   (find-file user-init-file))
 
+(use-package projectile
+  :init
+  (projectile-mode +1)
+  (setq projectile-project-search-path '("~/Documents/projects"))
+  (setq projectile-completion-system 'default)
+  :bind-keymap
+  ("C-c p" . projectile-command-map))
 (global-set-key (kbd "C-c e") #'open-init-file)
+(global-set-key (kbd "C-c /") #'vterm)
 
 (defvar highlight-codetags-keywords
   '(("\\<\\(TODO\\|FIXME\\|BUG\\|XXX\\)\\>" 1 font-lock-warning-face prepend)
