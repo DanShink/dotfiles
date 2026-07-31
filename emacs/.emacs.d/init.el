@@ -78,20 +78,21 @@
 
 (unless package-archive-contents
   (package-refresh-contents))
-  
+
 (unless (package-installed-p 'use-package)
   (package-install 'use-package))
 
 (require 'use-package)
 (setq use-package-always-ensure t)
 
-;; (use-package catppuccin-theme
-;;   :pin "melpa"
-;;   :init
-;;   (setq catppuccin-flavor 'frappe)
-;;   :config
-;;   (load-theme 'catppuccin t))
-(load-theme 'modus-vivendi)
+(use-package catppuccin-theme
+  :pin "melpa"
+  :init
+  (setq catppuccin-flavor 'frappe)
+  :config
+  (load-theme 'catppuccin t))
+;; (load-theme 'modus-vivendi)
+;;(load-theme 'catppucin)
 
 ;; Force transient from archive if stuck on old built-in
 (unless (assq 'transient package-alist)
@@ -104,6 +105,14 @@
 
 (use-package magit
   :defer t)
+
+(use-package diff-hl
+  :ensure t
+  :config
+  (global-diff-hl-mode 1)
+  (diff-hl-flydiff-mode 1)
+  (unless (display-graphic-p)
+    (diff-hl-margin-mode 1)))
 
 (use-package corfu
   :custom
@@ -208,16 +217,35 @@
 (use-package eglot
   :ensure nil  ;; built-in
   :hook ((jtsx-jsx-mode      . eglot-ensure)
-         (typescript-ts-mode . eglot-ensure))
+         (typescript-ts-mode . eglot-ensure)
+	 (js-ts-mode         . eglot-ensure))
   :custom
   (eglot-autoshutdown t))
 
 ;; Eslint for javascript projects
 (use-package flymake-eslint
+  :pin "melpa"
+  :after (eglot project)
   :init
   (setq flymake-eslint-executable-name "eslint_d")
+  :preface
+  (defun my/flymake-eslint-enable()
+    "Enable flymake-eslint after eglot has intialized."
+    (when (derived-mode-p 'jtsx-jsx-mode 'js-ts-mode)
+      (flymake-eslint-enable)))
   :hook
-  (jtsx-jsx-mode . flymake-eslint-enable))
+  ;; (jtsx-jsx-mode . flymake-eslint-enable)
+  ;; (js-ts-mode    . flymake-eslint-enable))
+  (eglot-managed-mode . my/flymake-eslint-enable))
+
+;; Eslint formatting for javascript projects
+(use-package apheleia
+  :config
+  (apheleia-global-mode +1)
+  (setf (alist-get 'eslint-fix apheleia-formatters)
+        '(npx "eslint_d" "--fix-to-stdout" "--stdin" "--stdin-filename" filepath))
+  (setf (alist-get 'jtsx-jsx-mode apheleia-mode-alist) '(eslint-fix))
+  (setf (alist-get 'js-ts-mode apheleia-mode-alist) '(eslint-fix)))
 
 (use-package dumb-jump
   :init
@@ -249,30 +277,33 @@
 	       '(jtsx-jsx-mode js-indent-level))
   (add-hook 'jtsx-jsx-mode-hook #'editorconfig-apply t))
 
-(use-package evil
-  :init
-  (setq evil-default-state 'emacs
-        evil-want-C-w-in-emacs-state t
-        evil-want-C-w-delete nil
-        evil-want-Y-yank-to-eol t
-        evil-want-C-u-scroll t
-        evil-vsplit-window-right t
-        evil-split-window-below t
-        evil-undo-system 'undo-redo
-        evil-symbol-word-search t
-        evil-kill-on-visual-paste nil)
-  :config
-  (evil-mode 1)
-  (evil-set-initial-state 'prog-mode 'normal)
-  (evil-set-initial-state 'text-mode 'normal)
-  (evil-set-initial-state 'conf-mode 'normal)
-  (evil-set-initial-state 'fundamental-mode 'normal)
-  (evil-set-initial-state 'git-commit-mode 'emacs)
-  (defalias #'forward-evil-word #'forward-evil-symbol))
+(use-package smartparens
+  :defer t)
 
-(use-package evil-surround
-  :after evil
-  :config (global-evil-surround-mode 1))
+;; (use-package evil
+;;   :init
+;;   (setq evil-default-state 'emacs
+;;         evil-want-C-w-in-emacs-state t
+;;         evil-want-C-w-delete nil
+;;         evil-want-Y-yank-to-eol t
+;;         evil-want-C-u-scroll t
+;;         evil-vsplit-window-right t
+;;         evil-split-window-below t
+;;         evil-undo-system 'undo-redo
+;;         evil-symbol-word-search t
+;;         evil-kill-on-visual-paste nil)
+;;   :config
+;;   (evil-mode 1)
+;;   (evil-set-initial-state 'prog-mode 'normal)
+;;   (evil-set-initial-state 'text-mode 'normal)
+;;   (evil-set-initial-state 'conf-mode 'normal)
+;;   (evil-set-initial-state 'fundamental-mode 'normal)
+;;   (evil-set-initial-state 'git-commit-mode 'emacs)
+;;   (defalias #'forward-evil-word #'forward-evil-symbol))
+
+;; (use-package evil-surround
+;;   :after evil
+;;   :config (global-evil-surround-mode 1))
 
 (use-package projectile
   :init
@@ -323,3 +354,25 @@
       (with-no-warnings (font-lock-fontify-buffer)))))
 
 (add-hook 'prog-mode-hook #'highlight-codetags-local-mode)
+(add-hook 'prog-mode-hook #'smartparens-mode)
+(put 'narrow-to-region 'disabled nil)
+
+(defun restart-graphql ()
+  "Restart Graphql"
+  (interactive)
+  (async-shell-command "bash -ic 'restart_graphql'" "*restart-graphql-log*"))
+
+(defun view-graphql-logs ()
+  "Restart Graphql"
+  (interactive)
+  (async-shell-command "bash -ic 'view_graphql_logs'" "*graphql-logs*"))
+
+(defun restart-template-svc ()
+  "Restart Graphql"
+  (interactive)
+  (async-shell-command "bash -ic 'restart_template'" "*restart-template-log*"))
+
+(defun view-template-svc-logs ()
+  "Restart Graphql"
+  (interactive)
+  (async-shell-command "bash -ic 'view_template_log_emacs'" "*template-logs*"))
