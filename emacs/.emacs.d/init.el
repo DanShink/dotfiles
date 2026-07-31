@@ -207,6 +207,7 @@
 ;; Remap old modes to tree-sitter modes
 (setq major-mode-remap-alist
       '((javascript-mode . jtsx-jsx-mode)
+	(js-ts-mode      . jtsx-jsx-mode)
         (typescript-mode . typescript-ts-mode)
         (css-mode        . css-ts-mode)
         (json-mode       . json-ts-mode)
