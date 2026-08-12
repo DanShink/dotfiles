@@ -43,21 +43,66 @@
     (delete-other-windows)))
 
 (global-set-key (kbd "C-x 1") #'toggle-delete-other-windows)
+(global-set-key (kbd "M-z") #'zap-up-to-char)
 
 ;; Global line numbers
-(setq display-line-numbers-type 'relative)
+(setq display-line-numbers-type 'relative) 
 (global-display-line-numbers-mode 1)
 
 ;; Font
 (set-face-attribute 'default nil :font "JetBrainsMono Nerd Font-12")
 
-(setq fast-but-imprecise-scrolling t)
+;; (setq fast-but-imprecise-scrolling t)
 
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
 
 ;; Load the custom file if it exists, but don't throw an error if it doesn't
 (when (file-exists-p custom-file)
   (load custom-file))
+
+;; Show startup time and garbage collections
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (message "Emacs loaded in %.2f seconds with %d garbage collections."
+                     (float-time
+                      (time-subtract after-init-time before-init-time))
+                     gcs-done)))
+
+(defun open-init-file ()
+  "This function opens the init.el file."
+  (interactive)
+  (find-file user-init-file))
+
+(global-set-key (kbd "C-c e") #'open-init-file)
+
+(defvar highlight-codetags-keywords
+  '(("\\<\\(TODO\\|FIXME\\|BUG\\|XXX\\)\\>" 1 font-lock-warning-face prepend)
+    ("\\<\\(NOTE\\|HACK\\)\\>" 1 font-lock-doc-face prepend)))
+
+(define-minor-mode highlight-codetags-local-mode
+  "Highlight codetags like TODO, FIXME..."
+  :global nil
+  (if highlight-codetags-local-mode
+      (font-lock-add-keywords nil highlight-codetags-keywords)
+    (font-lock-remove-keywords nil highlight-codetags-keywords))
+
+  ;; Fontify the current buffer
+  (when (bound-and-true-p font-lock-mode)
+    (if (fboundp 'font-lock-flush)
+        (font-lock-flush)
+      (with-no-warnings (font-lock-fontify-buffer)))))
+
+(add-hook 'prog-mode-hook #'highlight-codetags-local-mode)
+(put 'narrow-to-region 'disabled nil)
+
+(make-directory "~/.emacs.d/autosaves" t)
+(make-directory "~/.emacs.d/backups" t)
+
+(setq backup-directory-alist
+      '((".*" . "~/.emacs.d/backups")))
+
+(setq auto-save-file-name-transforms
+      '((".*" "~/.emacs.d/autosaves/" t)))
 
 ;; Package Management
 (require 'package)
@@ -178,15 +223,19 @@
 
 (use-package consult
   :bind
-  (("C-s" . consult-line)
+  (("C-c s b" . consult-line)
    ("C-x b" . consult-buffer)
    ("M-y" . consult-yank-pop)))
 
 (use-package vterm)
 
-(use-package jtsx)
+(global-set-key (kbd "C-c /") #'vterm)
 
-(setq treesit-font-lock-level 4) 
+(use-package jtsx)
+(define-key jtsx-jsx-mode-map (kbd "C-c C-f") #'jtsx-jump-jsx-closing-tag)
+(define-key jtsx-jsx-mode-map (kbd "C-c C-b") #'jtsx-jump-jsx-opening-tag)
+
+(setq treesit-font-lock-level 3) 
 (setq treesit-language-source-alist
       '((javascript . ("https://github.com/tree-sitter/tree-sitter-javascript"))
         (typescript . ("https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src"))
@@ -280,6 +329,7 @@
 
 (use-package smartparens
   :defer t)
+(add-hook 'prog-mode-hook #'smartparens-mode)
 
 ;; (use-package evil
 ;;   :init
@@ -314,49 +364,9 @@
   :bind-keymap
   ("C-c p" . projectile-command-map))
 
-;; Show startup time and garbage collections
-(add-hook 'emacs-startup-hook
-          (lambda ()
-            (message "Emacs loaded in %.2f seconds with %d garbage collections."
-                     (float-time
-                      (time-subtract after-init-time before-init-time))
-                     gcs-done)))
-
-(defun open-init-file ()
-  "This function opens the init.el file."
-  (interactive)
-  (find-file user-init-file))
-
-(use-package projectile
-  :init
-  (projectile-mode +1)
-  (setq projectile-project-search-path '("~/Documents/projects"))
-  (setq projectile-completion-system 'default)
-  :bind-keymap
-  ("C-c p" . projectile-command-map))
-(global-set-key (kbd "C-c e") #'open-init-file)
-(global-set-key (kbd "C-c /") #'vterm)
-
-(defvar highlight-codetags-keywords
-  '(("\\<\\(TODO\\|FIXME\\|BUG\\|XXX\\)\\>" 1 font-lock-warning-face prepend)
-    ("\\<\\(NOTE\\|HACK\\)\\>" 1 font-lock-doc-face prepend)))
-
-(define-minor-mode highlight-codetags-local-mode
-  "Highlight codetags like TODO, FIXME..."
-  :global nil
-  (if highlight-codetags-local-mode
-      (font-lock-add-keywords nil highlight-codetags-keywords)
-    (font-lock-remove-keywords nil highlight-codetags-keywords))
-
-  ;; Fontify the current buffer
-  (when (bound-and-true-p font-lock-mode)
-    (if (fboundp 'font-lock-flush)
-        (font-lock-flush)
-      (with-no-warnings (font-lock-fontify-buffer)))))
-
-(add-hook 'prog-mode-hook #'highlight-codetags-local-mode)
-(add-hook 'prog-mode-hook #'smartparens-mode)
-(put 'narrow-to-region 'disabled nil)
+(use-package expreg
+  :ensure t
+  :bind (("C-=" . expreg-expand)))
 
 (defun restart-graphql ()
   "Restart Graphql"
