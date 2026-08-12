@@ -152,7 +152,6 @@
   :defer t)
 
 (use-package diff-hl
-  :ensure t
   :config
   (global-diff-hl-mode 1)
   (diff-hl-flydiff-mode 1)
@@ -367,6 +366,12 @@
 (use-package expreg
   :ensure t
   :bind (("C-=" . expreg-expand)))
+
+(use-package move-text
+  :config
+  (move-text-default-bindings))
+
+(use-package multiple-cursors)
 
 (defun restart-graphql ()
   "Restart Graphql"
