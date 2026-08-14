@@ -104,6 +104,9 @@
 (setq auto-save-file-name-transforms
       '((".*" "~/.emacs.d/autosaves/" t)))
 
+(global-set-key (kbd "M-[") #'flymake-goto-prev-error)
+(global-set-key (kbd "M-]") #'flymake-goto-next-error)
+
 ;; Package Management
 (require 'package)
 
