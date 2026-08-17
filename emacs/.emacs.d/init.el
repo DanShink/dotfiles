@@ -11,6 +11,7 @@
 (tool-bar-mode -1)
 (menu-bar-mode -1)
 (scroll-bar-mode -1)
+(blink-cursor-mode -1)
 
 ;; Optmizations
 ;; Only read left to right
@@ -40,7 +41,7 @@
   (if (and winner-mode
            (equal (selected-window) (next-window)))
       (winner-undo)
-    (delete-other-windows)))
+      (delete-other-windows)))
 
 (global-set-key (kbd "C-x 1") #'toggle-delete-other-windows)
 (global-set-key (kbd "M-z") #'zap-up-to-char)
@@ -80,17 +81,17 @@
     ("\\<\\(NOTE\\|HACK\\)\\>" 1 font-lock-doc-face prepend)))
 
 (define-minor-mode highlight-codetags-local-mode
-  "Highlight codetags like TODO, FIXME..."
+    "Highlight codetags like TODO, FIXME..."
   :global nil
   (if highlight-codetags-local-mode
       (font-lock-add-keywords nil highlight-codetags-keywords)
-    (font-lock-remove-keywords nil highlight-codetags-keywords))
+      (font-lock-remove-keywords nil highlight-codetags-keywords))
 
   ;; Fontify the current buffer
   (when (bound-and-true-p font-lock-mode)
     (if (fboundp 'font-lock-flush)
         (font-lock-flush)
-      (with-no-warnings (font-lock-fontify-buffer)))))
+	(with-no-warnings (font-lock-fontify-buffer)))))
 
 (add-hook 'prog-mode-hook #'highlight-codetags-local-mode)
 (put 'narrow-to-region 'disabled nil)
@@ -134,11 +135,11 @@
 (setq use-package-always-ensure t)
 
 (use-package catppuccin-theme
-  :pin "melpa"
-  :init
-  (setq catppuccin-flavor 'frappe)
-  :config
-  (load-theme 'catppuccin t))
+    :pin "melpa"
+    :init
+    (setq catppuccin-flavor 'mocha)
+    :config
+    (load-theme 'catppuccin t))
 ;; (load-theme 'modus-vivendi)
 ;;(load-theme 'catppucin)
 
@@ -148,21 +149,24 @@
   (package-install 'transient))
 
 (use-package transient
-  :pin "melpa stable"
-  :defer t)
+    :pin "melpa stable"
+    :defer t)
 
 (use-package magit
-  :defer t)
+    :defer t)
 
 (use-package diff-hl
-  :config
-  (global-diff-hl-mode 1)
-  (diff-hl-flydiff-mode 1)
-  (unless (display-graphic-p)
-    (diff-hl-margin-mode 1)))
+    :hook ((dired-mode . diff-hl-dired-mode)
+	   (magit-pre-refresh . diff-hl-magit-pre-refresh)
+	   (magit-post-refresh . diff-hl-magit-post-refresh))
+    :config
+    (global-diff-hl-mode 1)
+    (diff-hl-flydiff-mode 1)
+    (unless (display-graphic-p)
+      (diff-hl-margin-mode 1)))
 
 (use-package corfu
-  :custom
+    :custom
   (corfu-cycle t)
   (corfu-auto t)
   (corfu-auto-delay 0.15)
@@ -184,22 +188,22 @@
   (corfu-popupinfo-mode))
 
 (use-package prescient
-  :config
+    :config
   (prescient-persist-mode 1))
 
 (use-package corfu-prescient
-  :after (corfu prescient)
-  :config
-  (corfu-prescient-mode 1))
+    :after (corfu prescient)
+    :config
+    (corfu-prescient-mode 1))
 
 (use-package cape
-  :init
+    :init
   (add-to-list 'completion-at-point-functions #'cape-file)
   (add-to-list 'completion-at-point-functions #'cape-keyword)
   (add-to-list 'completion-at-point-functions #'cape-dabbrev))
 
 (use-package orderless
-  :custom
+    :custom
   (completion-styles '(orderless basic))
   (completion-category-defaults nil)
   (completion-category-overrides
@@ -207,24 +211,24 @@
 
 (use-package nerd-icons)
 (use-package nerd-icons-corfu
-  :after corfu
-  :config
-  (add-to-list 'corfu-margin-formatters
-	       #'nerd-icons-corfu-formatter))
+    :after corfu
+    :config
+    (add-to-list 'corfu-margin-formatters
+		 #'nerd-icons-corfu-formatter))
 (use-package nerd-icons-dired
-  :defer t)
+    :defer t)
 
 (use-package vertico
-  :init (vertico-mode)
-  :custom
-  (vertico-cycle t))
+    :init (vertico-mode)
+    :custom
+    (vertico-cycle t))
 
 (use-package marginalia
-  :init
+    :init
   (marginalia-mode))
 
 (use-package consult
-  :bind
+    :bind
   (("C-c s b" . consult-line)
    ("C-x b" . consult-buffer)
    ("M-y" . consult-yank-pop)))
@@ -267,32 +271,32 @@
 
 ;; Hook eglot into ts modes
 (use-package eglot
-  :ensure nil  ;; built-in
-  :hook ((jtsx-jsx-mode      . eglot-ensure)
-         (typescript-ts-mode . eglot-ensure)
-	 (js-ts-mode         . eglot-ensure))
-  :custom
-  (eglot-autoshutdown t))
+    :ensure nil  ;; built-in
+    :hook ((jtsx-jsx-mode      . eglot-ensure)
+           (typescript-ts-mode . eglot-ensure)
+	   (js-ts-mode         . eglot-ensure))
+    :custom
+    (eglot-autoshutdown t))
 
 ;; Eslint for javascript projects
 (use-package flymake-eslint
-  :pin "melpa"
-  :after (eglot project)
-  :init
-  (setq flymake-eslint-executable-name "eslint_d")
-  :preface
-  (defun my/flymake-eslint-enable()
-    "Enable flymake-eslint after eglot has intialized."
-    (when (derived-mode-p 'jtsx-jsx-mode 'js-ts-mode)
-      (flymake-eslint-enable)))
-  :hook
-  ;; (jtsx-jsx-mode . flymake-eslint-enable)
-  ;; (js-ts-mode    . flymake-eslint-enable))
-  (eglot-managed-mode . my/flymake-eslint-enable))
+    :pin "melpa"
+    :after (eglot project)
+    :init
+    (setq flymake-eslint-executable-name "eslint_d")
+    :preface
+    (defun my/flymake-eslint-enable()
+      "Enable flymake-eslint after eglot has intialized."
+      (when (derived-mode-p 'jtsx-jsx-mode 'js-ts-mode)
+	(flymake-eslint-enable)))
+    :hook
+    ;; (jtsx-jsx-mode . flymake-eslint-enable)
+    ;; (js-ts-mode    . flymake-eslint-enable))
+    (eglot-managed-mode . my/flymake-eslint-enable))
 
 ;; Eslint formatting for javascript projects
 (use-package apheleia
-  :config
+    :config
   (apheleia-global-mode +1)
   (setf (alist-get 'eslint-fix apheleia-formatters)
         '(npx "eslint_d" "--fix-to-stdout" "--stdin" "--stdin-filename" filepath))
@@ -300,37 +304,37 @@
   (setf (alist-get 'js-ts-mode apheleia-mode-alist) '(eslint-fix)))
 
 (use-package dumb-jump
-  :init
+    :init
   (add-hook 'xref-backend-functions #'dumb-jump-xref-activate)
   :config
   (setq dumb-jump-force-searcher 'rg))
 
 (use-package dotenv-mode
-  :defer t
-  :mode ("\\.env\\..*\\'" . dotenv-mode)
-  :config
-  (add-hook 'dotenv-mode-hook
-	    (lambda()
-	      (setq imenu-generic-expression
-		    '(("Variables" "^[[:space:]]*\\([A-Za-z0-9_]+\\)[[:space:]]*=" 1))))))
+    :defer t
+    :mode ("\\.env\\..*\\'" . dotenv-mode)
+    :config
+    (add-hook 'dotenv-mode-hook
+	      (lambda()
+		(setq imenu-generic-expression
+		      '(("Variables" "^[[:space:]]*\\([A-Za-z0-9_]+\\)[[:space:]]*=" 1))))))
 
 (use-package yasnippet
-  :config
+    :config
   (yas-global-mode 1))
 
 (use-package which-key
-  :init
+    :init
   (which-key-mode))
 
 (use-package editorconfig
-  :config
+    :config
   (editorconfig-mode 1)
   (add-to-list 'editorconfig-indentation-alist
 	       '(jtsx-jsx-mode js-indent-level))
   (add-hook 'jtsx-jsx-mode-hook #'editorconfig-apply t))
 
 (use-package smartparens
-  :defer t)
+    :defer t)
 (add-hook 'prog-mode-hook #'smartparens-mode)
 
 ;; (use-package evil
@@ -359,7 +363,7 @@
 ;;   :config (global-evil-surround-mode 1))
 
 (use-package projectile
-  :init
+    :init
   (projectile-mode +1)
   (setq projectile-project-search-path '("~/Documents/projects"))
   (setq projectile-completion-system 'default)
@@ -367,14 +371,22 @@
   ("C-c p" . projectile-command-map))
 
 (use-package expreg
-  :ensure t
-  :bind (("C-=" . expreg-expand)))
+    :ensure t
+    :bind (("C-=" . expreg-expand)))
 
 (use-package move-text
-  :config
+    :config
   (move-text-default-bindings))
 
 (use-package multiple-cursors)
+
+;; Remove for emacs > 30
+(use-package markdown-ts-mode
+    :mode ("\\.md\\'" . markdown-ts-mode)
+    :defer 't
+    :config
+    (add-to-list 'treesit-language-source-alist '(markdown "https://github.com/tree-sitter-grammars/tree-sitter-markdown" "split_parser" "tree-sitter-markdown/src"))
+    (add-to-list 'treesit-language-source-alist '(markdown-inline "https://github.com/tree-sitter-grammars/tree-sitter-markdown" "split_parser" "tree-sitter-markdown-inline/src")))
 
 (defun restart-graphql ()
   "Restart Graphql"
