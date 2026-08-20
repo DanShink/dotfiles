@@ -98,15 +98,22 @@
 
 (make-directory "~/.emacs.d/autosaves" t)
 (make-directory "~/.emacs.d/backups" t)
+(make-directory "~/.emacs.d/lock-files" t)
 
 (setq backup-directory-alist
-      '((".*" . "~/.emacs.d/backups")))
+      `((".*" . ,(expand-file-name "~/.emacs.d/backups"))))
 
 (setq auto-save-file-name-transforms
-      '((".*" "~/.emacs.d/autosaves/" t)))
+      `((".*" ,(expand-file-name "~/.emacs.d/autosaves/") t)))
+
+(setq lock-file-name-transforms
+      `((".*" ,(expand-file-name "~/.emacs.d/lock-files/") t)))
 
 (global-set-key (kbd "M-[") #'flymake-goto-prev-error)
 (global-set-key (kbd "M-]") #'flymake-goto-next-error)
+
+(setq vc-handled-backends
+      (remove 'SVN vc-handled-backends))
 
 ;; Package Management
 (require 'package)
@@ -216,7 +223,7 @@
   (add-to-list 'corfu-margin-formatters
 	       #'nerd-icons-corfu-formatter))
 (use-package nerd-icons-dired
-  :defer t)
+  :hook (dired-mode . nerd-icons-dired-mode))
 
 (use-package vertico
   :init (vertico-mode)
@@ -237,10 +244,6 @@
 
 (global-set-key (kbd "C-c /") #'vterm)
 
-(use-package jtsx)
-(define-key jtsx-jsx-mode-map (kbd "C-c C-f") #'jtsx-jump-jsx-closing-tag)
-(define-key jtsx-jsx-mode-map (kbd "C-c C-b") #'jtsx-jump-jsx-opening-tag)
-
 (setq treesit-font-lock-level 3) 
 (setq treesit-language-source-alist
       '((javascript . ("https://github.com/tree-sitter/tree-sitter-javascript"))
@@ -250,7 +253,8 @@
         (html       . ("https://github.com/tree-sitter/tree-sitter-html"))
         (json       . ("https://github.com/tree-sitter/tree-sitter-json"))
 	(c          . ("https://github.com/tree-sitter/tree-sitter-c"))
-	(cpp        . ("https://github.com/tree-sitter/tree-sitter-cpp"))))
+	(cpp        . ("https://github.com/tree-sitter/tree-sitter-cpp"))
+	(graphql    . ("https://github.com/bkegley/tree-sitter-graphql"))))
 
 ;; Install any missing grammars automatically
 (mapc #'treesit-install-language-grammar
@@ -258,6 +262,13 @@
        (lambda (lang)
          (not (treesit-language-available-p lang)))
        (mapcar #'car treesit-language-source-alist)))
+
+(use-package jtsx)
+(define-key jtsx-jsx-mode-map (kbd "C-c C-f") #'jtsx-jump-jsx-closing-tag)
+(define-key jtsx-jsx-mode-map (kbd "C-c C-b") #'jtsx-jump-jsx-opening-tag)
+
+(use-package graphql-ts-mode
+  :mode ("\\.graphql\\'" "\\.gql\\'"))
 
 ;; Remap old modes to tree-sitter modes
 (setq major-mode-remap-alist
@@ -294,12 +305,15 @@
   ;; (js-ts-mode    . flymake-eslint-enable))
   (eglot-managed-mode . my/flymake-eslint-enable))
 
+(use-package htmlize
+  :pin "melpa")
+
 ;; Eslint formatting for javascript projects
 (use-package apheleia
   :config
   (apheleia-global-mode +1)
   (setf (alist-get 'eslint-fix apheleia-formatters)
-        '(npx "eslint_d" "--fix-to-stdout" "--stdin" "--stdin-filename" filepath))
+        '("eslint_d" "--fix-to-stdout" "--stdin" "--stdin-filename" filepath))
   (setf (alist-get 'jtsx-jsx-mode apheleia-mode-alist) '(eslint-fix))
   (setf (alist-get 'js-ts-mode apheleia-mode-alist) '(eslint-fix)))
 
@@ -387,6 +401,15 @@
   :config
   (add-to-list 'treesit-language-source-alist '(markdown "https://github.com/tree-sitter-grammars/tree-sitter-markdown" "split_parser" "tree-sitter-markdown/src"))
   (add-to-list 'treesit-language-source-alist '(markdown-inline "https://github.com/tree-sitter-grammars/tree-sitter-markdown" "split_parser" "tree-sitter-markdown-inline/src")))
+
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((js . t) (C . t) (python . t)))
+
+(setq org-babel-python-command "python3")
+
+(setq org-src-fontify-natively t)
+(setq org-html-htmlize-output-type 'inline-css)
 
 (defun restart-graphql ()
   "Restart Graphql"
