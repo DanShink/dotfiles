@@ -28,6 +28,9 @@
 ;; No Duplicates in Kill Ring
 (setq kill-do-not-save-duplicates t)
 
+;; Save existing clipboard content into kill ring before overwriting
+(setq save-interprogram-paste-before-kill t)
+
 ;; Auto chmod on save
 (add-hook 'after-save-hook
           #'executable-make-buffer-file-executable-if-script-p)
@@ -115,6 +118,11 @@
 (setq vc-handled-backends
       (remove 'SVN vc-handled-backends))
 
+(add-to-list 'load-path
+             (expand-file-name "custom-files" user-emacs-directory))
+(require 'simpc-mode)
+(add-to-list 'auto-mode-alist '("\\.[hc]\\(pp\\)?\\'" . simpc-mode))
+
 ;; Package Management
 (require 'package)
 
@@ -141,14 +149,15 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
-(use-package catppuccin-theme
-  :pin "melpa"
-  :init
-  (setq catppuccin-flavor 'mocha)
-  :config
-  (load-theme 'catppuccin t))
+;; (use-package catppuccin-theme
+;;   :pin "melpa"
+;;   :init
+;;   (setq catppuccin-flavor 'mocha))
+;; :config
+;; (load-theme 'catppuccin t))	     
 ;; (load-theme 'modus-vivendi)
 ;;(load-theme 'catppucin)
+(load-theme 'doom-one)
 
 ;; Force transient from archive if stuck on old built-in
 (unless (assq 'transient package-alist)
@@ -263,6 +272,17 @@
          (not (treesit-language-available-p lang)))
        (mapcar #'car treesit-language-source-alist)))
 
+(defun my-c-large-file-settings ()
+  (when (> (buffer-size) (* 5 1024 1024))
+    ;; Reduce expensive fontification.
+    (setq-local treesit-font-lock-feature-list
+                '((comment)
+                  (string)
+                  (function)))
+    (treesit-font-lock-recompute-features)))
+
+(add-hook 'c-ts-mode-hook #'my-c-large-file-settings)
+
 (use-package jtsx)
 (define-key jtsx-jsx-mode-map (kbd "C-c C-f") #'jtsx-jump-jsx-closing-tag)
 (define-key jtsx-jsx-mode-map (kbd "C-c C-b") #'jtsx-jump-jsx-opening-tag)
@@ -277,7 +297,6 @@
         (typescript-mode . typescript-ts-mode)
         (css-mode        . css-ts-mode)
         (json-mode       . json-ts-mode)
-	(c-mode          . c-ts-mode)
 	(c++-mode        . c++-ts-mode)))
 
 ;; Hook eglot into ts modes
@@ -410,6 +429,14 @@
 
 (setq org-src-fontify-natively t)
 (setq org-html-htmlize-output-type 'inline-css)
+
+(use-package web-mode
+  :mode
+  ("\\.njk\\'" . web-mode))
+
+(use-package doom-modeline
+  :config
+  (doom-modeline-mode 1))
 
 (defun restart-graphql ()
   "Restart Graphql"
