@@ -431,6 +431,8 @@
 (setq org-src-fontify-natively t)
 (setq org-html-htmlize-output-type 'inline-css)
 
+// TODO: Add support for vtsls instead of ts-ls
+
 (use-package web-mode
   :mode
   ("\\.njk\\'" . web-mode))
