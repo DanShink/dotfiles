@@ -1,9 +1,10 @@
 ;;; init.el --- Emacs configuration -*- lexical-binding: t; -*-
 
 ;; macOS GUI Emacs PATH fix
-;; (when (eq system-type 'darwin)
-;;   (setq exec-path '("/opt/homebrew/bin" "/usr/local/bin" "/usr/bin" "/bin"))
-;;   (setenv "PATH" (string-join exec-path ":")))
+;; This allows external processes like ripgrep to be used too 
+(when (eq system-type 'darwin)
+  (setq exec-path '("/opt/homebrew/bin" "/usr/local/bin" "/usr/bin" "/bin"))
+  (setenv "PATH" (string-join exec-path ":")))
 
 ;; Startup Splash Screen Every Time (Client Mode)
 (add-hook 'server-after-make-frame-hook #'about-emacs)
@@ -437,6 +438,8 @@
 (use-package doom-modeline
   :config
   (doom-modeline-mode 1))
+
+(use-package ripgrep)
 
 (defun restart-graphql ()
   "Restart Graphql"
