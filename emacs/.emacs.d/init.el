@@ -252,9 +252,9 @@
    ("C-x b" . consult-buffer)
    ("M-y" . consult-yank-pop)))
 
-(use-package vterm)
-
-(global-set-key (kbd "C-c /") #'vterm)
+(unless (eq system-type 'windows-nt)
+	(use-package vterm)
+	(global-set-key (kbd "C-c /") #'vterm))
 
 (setq treesit-font-lock-level 3) 
 (setq treesit-language-source-alist
