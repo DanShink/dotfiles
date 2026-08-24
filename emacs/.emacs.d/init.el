@@ -307,7 +307,13 @@
          (typescript-ts-mode . eglot-ensure)
 	 (js-ts-mode         . eglot-ensure))
   :custom
-  (eglot-autoshutdown t))
+  (eglot-autoshutdown t)
+  :config
+  (add-to-list 'eglot-server-programs
+               '(((js-ts-mode :language-id "javascript")
+                  (typescript-ts-mode :language-id "typescript")
+                  (jtsx-jsx-mode :language-id "javascriptreact"))
+                 . ("vtsls" "--stdio"))))
 
 ;; Eslint for javascript projects
 (use-package flymake-eslint
@@ -430,8 +436,6 @@
 
 (setq org-src-fontify-natively t)
 (setq org-html-htmlize-output-type 'inline-css)
-
-// TODO: Add support for vtsls instead of ts-ls
 
 (use-package web-mode
   :mode
