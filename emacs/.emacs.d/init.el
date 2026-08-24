@@ -55,7 +55,9 @@
 (global-display-line-numbers-mode 1)
 
 ;; Font
-(set-face-attribute 'default nil :font "JetBrainsMono Nerd Font-12")
+(if (eq system-type 'windows-nt)
+	(set-face-attribute 'default nil :font "JetBrainsMono NF-12.0")
+  (set-face-attribute 'default nil :font "JetBrainsMono Nerd Font-12"))
 
 ;; (setq fast-but-imprecise-scrolling t)
 
