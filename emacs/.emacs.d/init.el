@@ -160,6 +160,8 @@
 ;; (load-theme 'catppuccin t))	     
 ;; (load-theme 'modus-vivendi)
 ;;(load-theme 'catppucin)
+(use-package doom-themes
+  :pin "melpa")
 (load-theme 'doom-one)
 
 ;; Force transient from archive if stuck on old built-in
