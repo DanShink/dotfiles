@@ -14,6 +14,8 @@
 (scroll-bar-mode -1)
 (blink-cursor-mode -1)
 
+(desktop-save-mode 1)
+
 ;; Optmizations
 ;; Only read left to right
 (setq-default bidi-display-reordering 'left-to-right
@@ -56,7 +58,7 @@
 
 ;; Font
 (if (eq system-type 'windows-nt)
-	(set-face-attribute 'default nil :font "JetBrainsMono NF-12.0")
+    (set-face-attribute 'default nil :font "JetBrainsMono NF-12.0")
   (set-face-attribute 'default nil :font "JetBrainsMono Nerd Font-12"))
 
 ;; (setq fast-but-imprecise-scrolling t)
@@ -255,8 +257,9 @@
    ("M-y" . consult-yank-pop)))
 
 (unless (eq system-type 'windows-nt)
-	(use-package vterm)
-	(global-set-key (kbd "C-c /") #'vterm))
+  (use-package ghostel
+    :pin "melpa")
+  (global-set-key (kbd "C-c /") #'ghostel))
 
 (setq treesit-font-lock-level 3) 
 (setq treesit-language-source-alist
@@ -309,15 +312,20 @@
   :ensure nil  ;; built-in
   :hook ((jtsx-jsx-mode      . eglot-ensure)
          (typescript-ts-mode . eglot-ensure)
-	 (js-ts-mode         . eglot-ensure))
+	 (js-ts-mode         . eglot-ensure)
+	 (tsx-ts-mode        . eglot-ensure))
   :custom
   (eglot-autoshutdown t)
   :config
   (add-to-list 'eglot-server-programs
                '(((js-ts-mode :language-id "javascript")
                   (typescript-ts-mode :language-id "typescript")
-                  (jtsx-jsx-mode :language-id "javascriptreact"))
-                 . ("vtsls" "--stdio"))))
+                  (jtsx-jsx-mode :language-id "javascriptreact")
+		  (tsx-ts-mode :language-id "javascriptreact"))
+                 . ("vtsls" "--stdio")))
+  (setq eglot-events-buffer-config '(:size 0 :format short)))
+
+
 
 ;; Eslint for javascript projects
 (use-package flymake-eslint
@@ -328,7 +336,7 @@
   :preface
   (defun my/flymake-eslint-enable()
     "Enable flymake-eslint after eglot has intialized."
-    (when (derived-mode-p 'jtsx-jsx-mode 'js-ts-mode)
+    (when (derived-mode-p 'jtsx-jsx-mode 'js-ts-mode 'tsx-ts-mode)
       (flymake-eslint-enable)))
   :hook
   ;; (jtsx-jsx-mode . flymake-eslint-enable)
@@ -375,7 +383,8 @@
   (editorconfig-mode 1)
   (add-to-list 'editorconfig-indentation-alist
 	       '(jtsx-jsx-mode js-indent-level))
-  (add-hook 'jtsx-jsx-mode-hook #'editorconfig-apply t))
+  (add-hook 'jtsx-jsx-mode-hook #'editorconfig-apply t)
+  (add-hook 'tsx-ts-mode-hook #'editorconfig-apply t))
 
 (use-package smartparens
   :defer t)
@@ -437,6 +446,8 @@
  '((js . t) (C . t) (python . t)))
 
 (setq org-babel-python-command "python3")
+(with-eval-after-load 'org
+  (add-to-list 'org-src-lang-modes '(("js" . js-ts) ("jsx" . jtsx-jsx))))
 
 (setq org-src-fontify-natively t)
 (setq org-html-htmlize-output-type 'inline-css)
