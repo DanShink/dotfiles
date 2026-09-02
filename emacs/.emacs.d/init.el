@@ -291,7 +291,8 @@
 
 (add-hook 'c-ts-mode-hook #'my-c-large-file-settings)
 
-(use-package jtsx)
+(use-package jtsx
+  :pin "melpa")
 (define-key jtsx-jsx-mode-map (kbd "C-c C-f") #'jtsx-jump-jsx-closing-tag)
 (define-key jtsx-jsx-mode-map (kbd "C-c C-b") #'jtsx-jump-jsx-opening-tag)
 
@@ -433,14 +434,6 @@
 
 (use-package multiple-cursors)
 
-;; Remove for emacs > 30
-(use-package markdown-ts-mode
-  :mode ("\\.md\\'" . markdown-ts-mode)
-  :defer 't
-  :config
-  (add-to-list 'treesit-language-source-alist '(markdown "https://github.com/tree-sitter-grammars/tree-sitter-markdown" "split_parser" "tree-sitter-markdown/src"))
-  (add-to-list 'treesit-language-source-alist '(markdown-inline "https://github.com/tree-sitter-grammars/tree-sitter-markdown" "split_parser" "tree-sitter-markdown-inline/src")))
-
 (org-babel-do-load-languages
  'org-babel-load-languages
  '((js . t) (C . t) (python . t)))
@@ -462,6 +455,13 @@
 
 (use-package ripgrep)
 
+(use-package restclient
+  :mode ("\\.http\\'" . restclient-mode))
+
+(when (>= emacs-major-version 31)
+  (use-package markdown-ts-mode
+    :mode ("\\.md\\'" . markdown-ts-mode)))
+
 (defun restart-graphql ()
   "Restart Graphql"
   (interactive)
@@ -481,3 +481,28 @@
   "Restart Graphql"
   (interactive)
   (async-shell-command "bash -ic 'view_template_log_emacs'" "*template-logs*"))
+
+(defun my/get-wordle (date)
+  "Fetch the wordle for the specified date (YYYY-MM-DD)"
+  (interactive
+   (list
+    (read-string
+     "Date (YYYY-MM-DD): "
+     (format-time-string "%Y-%m-%d"))))
+
+  (let ((buffer
+         (url-retrieve-synchronously
+          (format "https://www.nytimes.com/svc/wordle/v2/%s.json" date))))
+
+    (with-current-buffer buffer
+      ;; Move past the HTTP headers.
+      (goto-char url-http-end-of-headers)
+      ;; Turn the JSON response into an Emacs Lisp value.
+      (let ((json
+             (json-parse-buffer
+              :object-type 'alist)))
+        ;; Get the value associated with "solution".
+        (let ((wordle (alist-get 'solution json)))
+          (kill-buffer buffer)
+          (message "Solution: %s" wordle)
+          wordle)))))
