@@ -214,16 +214,11 @@
   :config
   (prescient-persist-mode 1))
 
-(use-package corfu-prescient
-  :after (corfu prescient)
-  :config
-  (corfu-prescient-mode 1))
-
 (use-package cape
   :init
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
   (add-to-list 'completion-at-point-functions #'cape-file)
-  (add-to-list 'completion-at-point-functions #'cape-keyword)
-  (add-to-list 'completion-at-point-functions #'cape-dabbrev))
+  (add-to-list 'completion-at-point-functions #'cape-keyword))
 
 (use-package orderless
   :custom
@@ -325,8 +320,6 @@
 		  (tsx-ts-mode :language-id "javascriptreact"))
                  . ("vtsls" "--stdio")))
   (setq eglot-events-buffer-config '(:size 0 :format short)))
-
-
 
 ;; Eslint for javascript projects
 (use-package flymake-eslint
