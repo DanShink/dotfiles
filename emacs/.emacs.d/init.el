@@ -227,7 +227,8 @@
   (completion-category-overrides
    '((file (styles basic partial-completion)))))
 
-(use-package nerd-icons)
+(use-package nerd-icons
+  :pin "melpa")
 (use-package nerd-icons-corfu
   :after corfu
   :config
@@ -250,6 +251,13 @@
   (("C-c s b" . consult-line)
    ("C-x b" . consult-buffer)
    ("M-y" . consult-yank-pop)))
+
+(use-package nerd-icons-completion
+  :after marginalia
+  :config
+  (nerd-icons-completion-mode)
+  (add-hook 'marginalia-mode-hook
+	    #'nerd-icons-completion-marginalia-setup))
 
 (unless (eq system-type 'windows-nt)
   (use-package ghostel
@@ -286,18 +294,112 @@
 
 (add-hook 'c-ts-mode-hook #'my-c-large-file-settings)
 
-(use-package jtsx
-  :pin "melpa")
-(define-key jtsx-jsx-mode-map (kbd "C-c C-f") #'jtsx-jump-jsx-closing-tag)
-(define-key jtsx-jsx-mode-map (kbd "C-c C-b") #'jtsx-jump-jsx-opening-tag)
+(defconst my-tsx-void-tags
+  '("area" "base" "br" "col" "embed"
+    "hr" "img" "input" "link" "meta"
+    "param" "source" "track" "wbr"))
+
+(defun my-tsx-auto-close-tag ()
+  "Automatically insert a closing JSX tag after typing `>'."
+  (when (and (derived-mode-p 'tsx-ts-mode)
+             (eq last-command-event ?>))
+    (let ((node (treesit-node-at (1- (point)) 'tsx)))
+      (while (and node
+                  (not (member (treesit-node-type node)
+                               '("jsx_opening_element"
+                                 "jsx_self_closing_element"))))
+        (setq node (treesit-node-parent node)))
+
+      (when (and node
+                 (string= (treesit-node-type node)
+                          "jsx_opening_element"))
+        (when-let* ((name-node
+                     (treesit-node-child-by-field-name node "name"))
+                    (tag-name
+                     (treesit-node-text name-node t)))
+          (unless (member tag-name my-tsx-void-tags)
+            (save-excursion
+              (insert "</" tag-name ">"))))))))
+
+(add-hook 'tsx-ts-mode-hook
+          (lambda ()
+            (add-hook 'post-self-insert-hook
+                      #'my-tsx-auto-close-tag
+                      nil t)))
+
+(defun my-tsx--between-empty-tags-p ()
+  "Return non-nil when point is between an empty pair of JSX tags."
+  (when (derived-mode-p 'tsx-ts-mode)
+    (let ((node (treesit-node-at
+                 (max (point-min) (1- (point)))
+                 'tsx)))
+
+      ;; Find the containing JSX element.
+      (while (and node
+                  (not (string= (treesit-node-type node)
+                                "jsx_element")))
+        (setq node (treesit-node-parent node)))
+
+      (when node
+        (let ((open-tag
+               (treesit-node-child-by-field-name node "open_tag"))
+              (close-tag
+               (treesit-node-child-by-field-name node "close_tag")))
+
+          (and open-tag
+               close-tag
+
+               ;; Point must be between the opening and closing tags.
+               (>= (point) (treesit-node-end open-tag))
+               (<= (point) (treesit-node-start close-tag))
+
+               ;; There can't already be content between them.
+               (string-match-p
+                "\\`[[:space:]]*\\'"
+                (buffer-substring-no-properties
+                 (treesit-node-end open-tag)
+                 (treesit-node-start close-tag)))))))))
+
+
+(defun my-tsx-newline ()
+  "Insert a JSX-aware newline in `tsx-ts-mode'."
+  (interactive)
+
+  (if (my-tsx--between-empty-tags-p)
+
+      ;; <div>|</div>
+      (progn
+        ;; First create the final structure:
+        ;;
+        ;; <div>
+        ;;
+        ;; </div>
+        ;;
+        (newline 2)
+
+        ;; We're now on the closing-tag line.
+        (indent-according-to-mode)
+
+        ;; Move back to the empty inner line.
+        (forward-line -1)
+        (indent-according-to-mode))
+
+    ;; Normal newline everywhere else.
+    (newline)
+    (indent-according-to-mode)))
+
+(with-eval-after-load 'typescript-ts-mode
+  (define-key tsx-ts-mode-map
+              (kbd "RET")
+              #'my-tsx-newline))
 
 (use-package graphql-ts-mode
   :mode ("\\.graphql\\'" "\\.gql\\'"))
 
 ;; Remap old modes to tree-sitter modes
 (setq major-mode-remap-alist
-      '((javascript-mode . jtsx-jsx-mode)
-	(js-ts-mode      . jtsx-jsx-mode)
+      '((javascript-mode . tsx-ts-mode)
+	(js-ts-mode      . tsx-ts-mode)
         (typescript-mode . typescript-ts-mode)
         (css-mode        . css-ts-mode)
         (json-mode       . json-ts-mode)
@@ -306,17 +408,18 @@
 ;; Hook eglot into ts modes
 (use-package eglot
   :ensure nil  ;; built-in
-  :hook ((jtsx-jsx-mode      . eglot-ensure)
+  :hook ((tsx-ts-mode      . eglot-ensure)
          (typescript-ts-mode . eglot-ensure)
 	 (js-ts-mode         . eglot-ensure)
 	 (tsx-ts-mode        . eglot-ensure))
   :custom
   (eglot-autoshutdown t)
   :config
+  (add-to-list 'eglot-ignored-server-capabilities
+	       :documentOnTypeFormattingProvider)
   (add-to-list 'eglot-server-programs
                '(((js-ts-mode :language-id "javascript")
                   (typescript-ts-mode :language-id "typescript")
-                  (jtsx-jsx-mode :language-id "javascriptreact")
 		  (tsx-ts-mode :language-id "javascriptreact"))
                  . ("vtsls" "--stdio")))
   (setq eglot-events-buffer-config '(:size 0 :format short)))
@@ -330,7 +433,7 @@
   :preface
   (defun my/flymake-eslint-enable()
     "Enable flymake-eslint after eglot has intialized."
-    (when (derived-mode-p 'jtsx-jsx-mode 'js-ts-mode 'tsx-ts-mode)
+    (when (derived-mode-p 'js-ts-mode 'tsx-ts-mode)
       (flymake-eslint-enable)))
   :hook
   ;; (jtsx-jsx-mode . flymake-eslint-enable)
@@ -346,7 +449,7 @@
   (apheleia-global-mode +1)
   (setf (alist-get 'eslint-fix apheleia-formatters)
         '("eslint_d" "--fix-to-stdout" "--stdin" "--stdin-filename" filepath))
-  (setf (alist-get 'jtsx-jsx-mode apheleia-mode-alist) '(eslint-fix))
+  (setf (alist-get 'tsx-ts-mode apheleia-mode-alist) '(eslint-fix))
   (setf (alist-get 'js-ts-mode apheleia-mode-alist) '(eslint-fix)))
 
 (use-package dumb-jump
@@ -376,13 +479,13 @@
   :config
   (editorconfig-mode 1)
   (add-to-list 'editorconfig-indentation-alist
-	       '(jtsx-jsx-mode js-indent-level))
-  (add-hook 'jtsx-jsx-mode-hook #'editorconfig-apply t)
+	       '(tsx-ts-mode js-indent-level))
   (add-hook 'tsx-ts-mode-hook #'editorconfig-apply t))
 
-(use-package smartparens
-  :defer t)
-(add-hook 'prog-mode-hook #'smartparens-mode)
+;; (use-package smartparens
+;;   :defer t)
+;; (add-hook 'prog-mode-hook #'smartparens-mode)
+(electric-pair-mode 1)
 
 ;; (use-package evil
 ;;   :init
@@ -433,7 +536,7 @@
 
 (setq org-babel-python-command "python3")
 (with-eval-after-load 'org
-  (add-to-list 'org-src-lang-modes '(("js" . js-ts) ("jsx" . jtsx-jsx))))
+  (add-to-list 'org-src-lang-modes '(("js" . js-ts) ("jsx" . tsx-ts))))
 
 (setq org-src-fontify-natively t)
 (setq org-html-htmlize-output-type 'inline-css)
@@ -441,6 +544,8 @@
 (use-package web-mode
   :mode
   ("\\.njk\\'" . web-mode))
+
+(use-package markdown-mode)
 
 (use-package doom-modeline
   :config
