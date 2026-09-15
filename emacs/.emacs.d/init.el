@@ -56,6 +56,8 @@
 (setq display-line-numbers-type 'relative) 
 (global-display-line-numbers-mode 1)
 
+(setq next-screen-context-lines 10)
+
 ;; Font
 (if (eq system-type 'windows-nt)
     (set-face-attribute 'default nil :font "JetBrainsMono NF-12.0")
