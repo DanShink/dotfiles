@@ -194,7 +194,7 @@
   :custom
   (corfu-cycle t)
   (corfu-auto t)
-  (corfu-auto-delay 0.15)
+  (corfu-auto-delay 0.08)
   (corfu-auto-prefix 2)
   (corfu-preview-current nil)
   (corfu-preselect 'prompt)
@@ -442,6 +442,14 @@
   ;; (js-ts-mode    . flymake-eslint-enable))
   (eglot-managed-mode . my/flymake-eslint-enable))
 
+(setq-default
+ eglot-workspace-configuration
+ '(:vtsls
+   (:experimental
+    (:completion
+     (:enableServerSideFuzzyMatch t
+				  :entriesLimit 200)))))
+
 (use-package htmlize
   :pin "melpa")
 
@@ -530,7 +538,14 @@
   :config
   (move-text-default-bindings))
 
-(use-package multiple-cursors)
+(use-package multiple-cursors
+  :bind
+  (("C->" . mc/mark-next-like-this)
+   ("C-<" . mc/mark-previous-like-this)
+   ("C-c m a" . mc/mark-all-like-this)
+   ("C-c m l" . mc/edit-lines)
+   ("C-c m n" . mc/skip-to-next-like-this)
+   ("C-c m p" . mc/skip-to-previous-like-this)))
 
 (org-babel-do-load-languages
  'org-babel-load-languages
