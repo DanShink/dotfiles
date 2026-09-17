@@ -497,31 +497,6 @@
 ;; (add-hook 'prog-mode-hook #'smartparens-mode)
 (electric-pair-mode 1)
 
-;; (use-package evil
-;;   :init
-;;   (setq evil-default-state 'emacs
-;;         evil-want-C-w-in-emacs-state t
-;;         evil-want-C-w-delete nil
-;;         evil-want-Y-yank-to-eol t
-;;         evil-want-C-u-scroll t
-;;         evil-vsplit-window-right t
-;;         evil-split-window-below t
-;;         evil-undo-system 'undo-redo
-;;         evil-symbol-word-search t
-;;         evil-kill-on-visual-paste nil)
-;;   :config
-;;   (evil-mode 1)
-;;   (evil-set-initial-state 'prog-mode 'normal)
-;;   (evil-set-initial-state 'text-mode 'normal)
-;;   (evil-set-initial-state 'conf-mode 'normal)
-;;   (evil-set-initial-state 'fundamental-mode 'normal)
-;;   (evil-set-initial-state 'git-commit-mode 'emacs)
-;;   (defalias #'forward-evil-word #'forward-evil-symbol))
-
-;; (use-package evil-surround
-;;   :after evil
-;;   :config (global-evil-surround-mode 1))
-
 (use-package projectile
   :init
   (projectile-mode +1)
@@ -576,6 +551,19 @@
 (when (>= emacs-major-version 31)
   (use-package markdown-ts-mode
     :mode ("\\.md\\'" . markdown-ts-mode)))
+
+;; (use-package evil
+;;   :pin "melpa"
+;;   :init
+;;   (setq evil-default-state 'emacs
+;;         evil-want-C-u-scroll t
+;;         evil-want-C-w-delete nil
+;;         evil-want-Y-yank-to-eol t
+;;         evil-undo-system 'undo-redo
+;;         evil-symbol-word-search t)
+;;   :config
+;;   (evil-set-initial-state 'prog-mode 'normal)
+;;   (evil-mode 1))
 
 (defun restart-graphql ()
   "Restart Graphql"
