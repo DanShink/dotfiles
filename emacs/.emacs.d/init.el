@@ -276,7 +276,19 @@
         (json       . ("https://github.com/tree-sitter/tree-sitter-json"))
 	(c          . ("https://github.com/tree-sitter/tree-sitter-c"))
 	(cpp        . ("https://github.com/tree-sitter/tree-sitter-cpp"))
-	(graphql    . ("https://github.com/bkegley/tree-sitter-graphql"))))
+	(graphql    . ("https://github.com/bkegley/tree-sitter-graphql" :copy-queries t))))
+
+(require 'treesit-x)
+
+;; The GraphQL highlight query uses these two capture names, which aren't
+;; currently in Emacs 31's generic mapping.
+(add-to-list
+ 'treesit-generic-mode-font-lock-map
+ '("@parameter" . "@font-lock-variable-name-face"))
+
+(add-to-list
+ 'treesit-generic-mode-font-lock-map
+ '("@float" . "@font-lock-number-face"))
 
 ;; Install any missing grammars automatically
 (mapc #'treesit-install-language-grammar
@@ -397,6 +409,81 @@
 
 (use-package graphql-ts-mode
   :mode ("\\.graphql\\'" "\\.gql\\'"))
+
+(defun my-graphql-ts-indent-rules ()
+  "Get GraphQL indentation rules from `graphql-ts-mode'."
+  (with-temp-buffer
+    (delay-mode-hooks
+      (graphql-ts-mode))
+    (copy-tree
+     (assoc 'graphql treesit-simple-indent-rules))))
+
+(defun my-tsx-graphql-setup ()
+  "Use GraphQL Tree-sitter highlighting inside gql tagged templates."
+  (when (treesit-ready-p 'graphql t)
+
+    ;; ------------------------------------------------------------
+    ;; 1. Parse gql`...` as GraphQL
+    ;; ------------------------------------------------------------
+
+    (setq-local
+     treesit-range-settings
+     (append
+      treesit-range-settings
+      (treesit-range-rules
+       :embed 'graphql
+       :host 'tsx
+       :local t
+       :offset '(1 . -1)
+
+       '(((call_expression
+           function: (identifier) @_tag
+           arguments: (template_string) @graphql)
+          (:eq? @_tag "gql"))))))
+
+    (when-let ((graphql-indent-rules
+                (my-graphql-ts-indent-rules)))
+      (setq-local
+       treesit-simple-indent-rules
+       (cons graphql-indent-rules
+             (seq-remove
+              (lambda (rules)
+                (eq (car rules) 'graphql))
+              treesit-simple-indent-rules))))
+
+    ;; ------------------------------------------------------------
+    ;; 2. Use the GraphQL grammar's own highlights.scm
+    ;; ------------------------------------------------------------
+
+    (when-let ((query
+                (treesit-generic-mode-font-lock-query 'graphql)))
+
+      (setq-local
+       treesit-font-lock-settings
+       (append
+        treesit-font-lock-settings
+
+        (treesit-font-lock-rules
+         :language 'graphql
+         :feature 'graphql
+         :override t
+         query)))
+
+      ;; Make our GraphQL feature active.
+      (setq-local
+       treesit-font-lock-feature-list
+       (treesit-merge-font-lock-feature-list
+        treesit-font-lock-feature-list
+        '((graphql)))))
+
+    ;; Recalculate the injected language regions.
+    (treesit-update-ranges)
+
+    ;; Re-fontify the buffer.
+    (font-lock-flush)))
+
+
+(add-hook 'tsx-ts-mode-hook #'my-tsx-graphql-setup)
 
 ;; Remap old modes to tree-sitter modes
 (setq major-mode-remap-alist
@@ -551,6 +638,19 @@
 (when (>= emacs-major-version 31)
   (use-package markdown-ts-mode
     :mode ("\\.md\\'" . markdown-ts-mode)))
+
+(add-hook 'web-mode-hook
+          (lambda ()
+            (electric-pair-local-mode -1)))
+(defun my-njk-web-mode-setup ()
+  (when (and buffer-file-name
+             (string-equal (file-name-extension buffer-file-name) "njk"))
+    (setq-local web-mode-markup-indent-offset 2)
+    (setq-local web-mode-code-indent-offset 2)
+    (setq-local web-mode-css-indent-offset 2)))
+
+(add-hook 'web-mode-hook #'my-njk-web-mode-setup)
+
 
 ;; (use-package evil
 ;;   :pin "melpa"
