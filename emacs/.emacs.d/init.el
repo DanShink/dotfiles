@@ -27,6 +27,7 @@
 
 ;; Good for lsp stuff
 (setq read-process-output-max (* 4 1024 1024)) ; 4MB
+(setq gc-cons-threshold (* 64 1024 1024))
 
 ;; No Duplicates in Kill Ring
 (setq kill-do-not-save-duplicates t)
@@ -194,7 +195,7 @@
   :custom
   (corfu-cycle t)
   (corfu-auto t)
-  (corfu-auto-delay 0.08)
+  (corfu-auto-delay 0.2)
   (corfu-auto-prefix 2)
   (corfu-preview-current nil)
   (corfu-preselect 'prompt)
@@ -441,8 +442,8 @@
            arguments: (template_string) @graphql)
           (:eq? @_tag "gql"))))))
 
-    (when-let ((graphql-indent-rules
-                (my-graphql-ts-indent-rules)))
+    (when-let* ((graphql-indent-rules
+                 (my-graphql-ts-indent-rules)))
       (setq-local
        treesit-simple-indent-rules
        (cons graphql-indent-rules
@@ -455,8 +456,8 @@
     ;; 2. Use the GraphQL grammar's own highlights.scm
     ;; ------------------------------------------------------------
 
-    (when-let ((query
-                (treesit-generic-mode-font-lock-query 'graphql)))
+    (when-let* ((query
+                 (treesit-generic-mode-font-lock-query 'graphql)))
 
       (setq-local
        treesit-font-lock-settings
@@ -597,6 +598,7 @@
   :bind (("C-=" . expreg-expand)))
 
 (use-package move-text
+  :pin "melpa"
   :config
   (move-text-default-bindings))
 
@@ -630,7 +632,8 @@
   :config
   (doom-modeline-mode 1))
 
-(use-package ripgrep)
+(use-package ripgrep
+  :pin "melpa")
 
 (use-package restclient
   :mode ("\\.http\\'" . restclient-mode))
@@ -638,6 +641,11 @@
 (when (>= emacs-major-version 31)
   (use-package markdown-ts-mode
     :mode ("\\.md\\'" . markdown-ts-mode)))
+
+(use-package eldoc-box
+  :ensure t
+  :bind ("C-c d" . eldoc-box-help-at-point)
+  :bind ("C-c D" . eldoc-doc-buffer))
 
 (add-hook 'web-mode-hook
           (lambda ()
@@ -684,6 +692,14 @@
   "Restart Graphql"
   (interactive)
   (async-shell-command "bash -ic 'view_template_log_emacs'" "*template-logs*"))
+
+(defun fetch-latest-images ()
+  "Fetch latest shopfloor images"
+  (interactive)
+  (let ((default-directory "~/Documents/projects/shopfloor-dev-env/"))
+    (async-shell-command
+     "node fetch_latest_images.js"
+     "*fetch-latest-images*")))
 
 (defun my/get-wordle (date)
   "Fetch the wordle for the specified date (YYYY-MM-DD)"
