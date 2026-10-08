@@ -42,6 +42,8 @@
 ;; Save window layout after ctrl-x 1
 (winner-mode +1)
 
+(global-hl-line-mode 1)
+
 (defun toggle-delete-other-windows ()
   "Delete other windows in frame if any, or restore previous window config."
   (interactive)
@@ -641,6 +643,24 @@
 (when (>= emacs-major-version 31)
   (use-package markdown-ts-mode
     :mode ("\\.md\\'" . markdown-ts-mode)))
+
+(use-package go-ts-mode
+  :ensure nil
+  :mode "\\.go\\'"
+  :init
+  (add-to-list 'treesit-language-source-alist
+               '(go "https://github.com/tree-sitter/tree-sitter-go"))
+
+  :hook
+  (go-ts-mode . eglot-ensure)
+  (go-ts-mode . my/go-setup)
+
+  :config
+  (defun my/go-setup()
+    (setq-local tab-width 4)
+    (setq-local indent-tabs-mode t)
+    (setq-local go-ts-indent-offset 4)))
+
 
 (use-package eldoc-box
   :ensure t
