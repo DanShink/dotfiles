@@ -56,7 +56,7 @@
 (global-set-key (kbd "M-z") #'zap-up-to-char)
 
 ;; Global line numbers
-(setq display-line-numbers-type 'relative) 
+(setq display-line-numbers-type 'relative)
 (global-display-line-numbers-mode 1)
 
 (setq next-screen-context-lines 10)
@@ -64,7 +64,8 @@
 ;; Font
 (if (eq system-type 'windows-nt)
     (set-face-attribute 'default nil :font "JetBrainsMono NF-12.0")
-  (set-face-attribute 'default nil :font "JetBrainsMono Nerd Font-12"))
+  (add-to-list 'default-frame-alist
+               '(font . "JetBrainsMono Nerd Font-12")))
 
 ;; (setq fast-but-imprecise-scrolling t)
 
