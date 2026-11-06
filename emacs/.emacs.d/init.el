@@ -25,6 +25,9 @@
 ;; Skip font stuff while typing
 (setq redisplay-skip-fontification-on-input t)
 
+;; Prevent tab characters
+(setq-default indent-tabs-mode nil)
+
 ;; Good for lsp stuff
 (setq read-process-output-max (* 4 1024 1024)) ; 4MB
 (setq gc-cons-threshold (* 64 1024 1024))
@@ -190,7 +193,6 @@
 	 (magit-post-refresh . diff-hl-magit-post-refresh))
   :config
   (global-diff-hl-mode 1)
-  (diff-hl-flydiff-mode 1)
   (unless (display-graphic-p)
     (diff-hl-margin-mode 1)))
 
@@ -199,7 +201,7 @@
   (corfu-cycle t)
   (corfu-auto t)
   (corfu-auto-delay 0.2)
-  (corfu-auto-prefix 2)
+  (corfu-auto-prefix 3)
   (corfu-preview-current nil)
   (corfu-preselect 'prompt)
   (corfu-quit-no-match 'separator)
@@ -229,9 +231,9 @@
 (use-package orderless
   :custom
   (completion-styles '(orderless basic))
-  (completion-category-defaults nil)
   (completion-category-overrides
-   '((file (styles basic partial-completion)))))
+   '((file (styles basic partial-completion))
+     (eglot-capf (styles eglot--dumb-flex basic)))))
 
 (use-package nerd-icons
   :pin "melpa")
@@ -280,7 +282,8 @@
         (json       . ("https://github.com/tree-sitter/tree-sitter-json"))
 	(c          . ("https://github.com/tree-sitter/tree-sitter-c"))
 	(cpp        . ("https://github.com/tree-sitter/tree-sitter-cpp"))
-	(graphql    . ("https://github.com/bkegley/tree-sitter-graphql" :copy-queries t))))
+	(graphql    . ("https://github.com/bkegley/tree-sitter-graphql" :copy-queries t))
+	(jsdoc      . ("https://github.com/tree-sitter/tree-sitter-jsdoc"))))
 
 (require 'treesit-x)
 
@@ -317,27 +320,53 @@
     "hr" "img" "input" "link" "meta"
     "param" "source" "track" "wbr"))
 
-(defun my-tsx-auto-close-tag ()
-  "Automatically insert a closing JSX tag after typing `>'."
-  (when (and (derived-mode-p 'tsx-ts-mode)
-             (eq last-command-event ?>))
-    (let ((node (treesit-node-at (1- (point)) 'tsx)))
-      (while (and node
-                  (not (member (treesit-node-type node)
-                               '("jsx_opening_element"
-                                 "jsx_self_closing_element"))))
-        (setq node (treesit-node-parent node)))
+;; (defun my-tsx-auto-close-tag ()
+;;   "Automatically insert a closing JSX tag after typing `>'."
+;;   (when (and (derived-mode-p 'tsx-ts-mode)
+;;              (eq last-command-event ?>))
+;;     (let ((node (treesit-node-at (1- (point)) 'tsx)))
+;;       (while (and node
+;;                   (not (member (treesit-node-type node)
+;;                                '("jsx_opening_element"
+;;                                  "jsx_self_closing_element"))))
+;;         (setq node (treesit-node-parent node)))
 
-      (when (and node
-                 (string= (treesit-node-type node)
+;;       (when (and node
+;;                  (string= (treesit-node-type node)
+;;                           "jsx_opening_element"))
+;;         (when-let* ((name-node
+;;                      (treesit-node-child-by-field-name node "name"))
+;;                     (tag-name
+;;                      (treesit-node-text name-node t)))
+;;           (unless (member tag-name my-tsx-void-tags)
+;;             (save-excursion
+;;               (insert "</" tag-name ">"))))))))
+
+(defun my-tsx-auto-close-tag ()
+  "Automatically insert a closing JSX tag when one is expected."
+  (when (and (derived-mode-p 'tsx-ts-mode)
+             (eq last-command-event ?>)
+             (= (prefix-numeric-value current-prefix-arg) 1))
+    (when-let* ((node (treesit-node-at (1- (point)) 'tsx))
+                (parent (treesit-node-parent node)))
+      (when (and (string= (treesit-node-type node) ">")
+                 (string= (treesit-node-type parent)
                           "jsx_opening_element"))
-        (when-let* ((name-node
-                     (treesit-node-child-by-field-name node "name"))
-                    (tag-name
-                     (treesit-node-text name-node t)))
-          (unless (member tag-name my-tsx-void-tags)
-            (save-excursion
-              (insert "</" tag-name ">"))))))))
+        (let ((ancestor (treesit-node-parent parent)))
+          ;; Check whether an ancestor contains a syntax error.
+          (while (and ancestor
+                      (not (string= (treesit-node-type ancestor)
+                                    "ERROR")))
+            (setq ancestor (treesit-node-parent ancestor)))
+
+          ;; Only insert a closing tag when an ERROR ancestor exists.
+          (when ancestor
+            (when-let* ((name-node
+                         (treesit-node-child-by-field-name parent "name"))
+                        (tag-name
+                         (treesit-node-text name-node t)))
+              (save-excursion
+                (insert "</" tag-name ">")))))))))
 
 (add-hook 'tsx-ts-mode-hook
           (lambda ()
@@ -422,9 +451,15 @@
     (copy-tree
      (assoc 'graphql treesit-simple-indent-rules))))
 
+(defvar-local my-tsx--graphql-ready nil
+  "Non-nil once GraphQL injection is installed in this TSX buffer.")
+
 (defun my-tsx-graphql-setup ()
   "Use GraphQL Tree-sitter highlighting inside gql tagged templates."
-  (when (treesit-ready-p 'graphql t)
+  (when (and (not my-tsx--graphql-ready)
+             (treesit-ready-p 'graphql t))
+    (setq my-tsx--graphql-ready t)
+    (remove-hook 'after-change-functions #'my-tsx-graphql--after-change t)
 
     ;; ------------------------------------------------------------
     ;; 1. Parse gql`...` as GraphQL
@@ -480,14 +515,25 @@
         treesit-font-lock-feature-list
         '((graphql)))))
 
-    ;; Recalculate the injected language regions.
     (treesit-update-ranges)
-
-    ;; Re-fontify the buffer.
     (font-lock-flush)))
 
+(defun my-tsx-graphql--after-change (beg end _len)
+  "Install GraphQL injection once a gql tag is typed."
+  (when (save-excursion
+          (goto-char (max (point-min) (- beg 3)))
+          (search-forward "gql`" (min (point-max) (+ end 3)) t))
+    (my-tsx-graphql-setup)))
 
-(add-hook 'tsx-ts-mode-hook #'my-tsx-graphql-setup)
+(defun my-tsx-graphql-init ()
+  "Install GraphQL injection now, or the first time a gql tag appears."
+  (if (save-excursion
+        (goto-char (point-min))
+        (search-forward "gql`" nil t))
+      (my-tsx-graphql-setup)
+    (add-hook 'after-change-functions #'my-tsx-graphql--after-change nil t)))
+
+(add-hook 'tsx-ts-mode-hook #'my-tsx-graphql-init)
 
 ;; Remap old modes to tree-sitter modes
 (setq major-mode-remap-alist
@@ -501,20 +547,24 @@
 ;; Hook eglot into ts modes
 (use-package eglot
   :ensure nil  ;; built-in
-  :hook ((tsx-ts-mode      . eglot-ensure)
+  :hook ((tsx-ts-mode        . eglot-ensure)
          (typescript-ts-mode . eglot-ensure)
-	 (js-ts-mode         . eglot-ensure)
-	 (tsx-ts-mode        . eglot-ensure))
+	 (js-ts-mode         . eglot-ensure))
   :custom
   (eglot-autoshutdown t)
+  (eglot-send-changes-idle-time 0.8)
+  (eglot-code-action-indications '(eldoc-hint))
+  (eldoc-idle-delay 0.8)
+  (flymake-no-changes-timeout 1.0)
   :config
-  (add-to-list 'eglot-ignored-server-capabilities
-	       :documentOnTypeFormattingProvider)
+  (dolist (capability '(:documentOnTypeFormattingProvider
+                        :inlayHintProvider))
+    (add-to-list 'eglot-ignored-server-capabilities capability))
   (add-to-list 'eglot-server-programs
                '(((js-ts-mode :language-id "javascript")
                   (typescript-ts-mode :language-id "typescript")
 		  (tsx-ts-mode :language-id "javascriptreact"))
-                 . ("vtsls" "--stdio")))
+                 . ("tsc" "--lsp" "--stdio")))
   (setq eglot-events-buffer-config '(:size 0 :format short)))
 
 ;; Eslint for javascript projects
@@ -532,14 +582,6 @@
   ;; (jtsx-jsx-mode . flymake-eslint-enable)
   ;; (js-ts-mode    . flymake-eslint-enable))
   (eglot-managed-mode . my/flymake-eslint-enable))
-
-(setq-default
- eglot-workspace-configuration
- '(:vtsls
-   (:experimental
-    (:completion
-     (:enableServerSideFuzzyMatch t
-				  :entriesLimit 200)))))
 
 (use-package htmlize
   :pin "melpa")
@@ -587,6 +629,52 @@
 ;;   :defer t)
 ;; (add-hook 'prog-mode-hook #'smartparens-mode)
 (electric-pair-mode 1)
+
+(defun my/add-jsdoc-in-typescript-ts-mode ()
+  "Add jsdoc treesitter rules to typescript as a host language."
+  ;; I copied this code from js.el (js-ts-mode), with minimal modifications.
+  (when (treesit-ready-p 'tsx)
+    (when (treesit-ready-p 'jsdoc t)
+      (setq-local treesit-range-settings
+                  (treesit-range-rules
+                   :embed 'jsdoc
+                   :host 'tsx
+                   :local t
+                   `(((comment) @capture (:match ,(rx bos "/**") @capture)))))
+      (setq c-ts-common--comment-regexp (rx (or "comment" "line_comment" "block_comment" "description")))
+
+      (defvar my/treesit-font-lock-settings-jsdoc
+        (treesit-font-lock-rules
+         :language 'jsdoc
+         :override t
+         :feature 'document
+         '((document) @font-lock-doc-face)
+
+         :language 'jsdoc
+         :override t
+         :feature 'keyword
+         '((tag_name) @font-lock-constant-face)
+
+         :language 'jsdoc
+         :override t
+         :feature 'bracket
+         '((["{" "}"]) @font-lock-bracket-face)
+
+         :language 'jsdoc
+         :override t
+         :feature 'property
+         '((type) @font-lock-type-face)
+
+         :language 'jsdoc
+         :override t
+         :feature 'definition
+         '((identifier) @font-lock-variable-face)
+         )
+        )
+      (setq-local treesit-font-lock-settings
+                  (append treesit-font-lock-settings my/treesit-font-lock-settings-jsdoc)))))
+
+(add-hook 'tsx-ts-mode-hook #'my/add-jsdoc-in-typescript-ts-mode)
 
 (use-package projectile
   :init
@@ -679,7 +767,6 @@
     (setq-local web-mode-css-indent-offset 2)))
 
 (add-hook 'web-mode-hook #'my-njk-web-mode-setup)
-
 
 ;; (use-package evil
 ;;   :pin "melpa"
