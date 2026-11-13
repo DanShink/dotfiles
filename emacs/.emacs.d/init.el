@@ -126,8 +126,8 @@
 (setq lock-file-name-transforms
       `((".*" ,(expand-file-name "~/.emacs.d/lock-files/") t)))
 
-(global-set-key (kbd "M-[") #'flymake-goto-prev-error)
-(global-set-key (kbd "M-]") #'flymake-goto-next-error)
+(global-set-key (kbd "M-p") #'flymake-goto-prev-error)
+(global-set-key (kbd "M-n") #'flymake-goto-next-error)
 
 (setq vc-handled-backends
       (remove 'SVN vc-handled-backends))
@@ -694,6 +694,7 @@
   (move-text-default-bindings))
 
 (use-package multiple-cursors
+  :pin "nongnu"
   :bind
   (("C->" . mc/mark-next-like-this)
    ("C-<" . mc/mark-previous-like-this)
