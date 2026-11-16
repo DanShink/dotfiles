@@ -126,8 +126,10 @@
 (setq lock-file-name-transforms
       `((".*" ,(expand-file-name "~/.emacs.d/lock-files/") t)))
 
-(global-set-key (kbd "M-p") #'flymake-goto-prev-error)
-(global-set-key (kbd "M-n") #'flymake-goto-next-error)
+;; (global-set-key (kbd "M-p") #'flymake-goto-prev-error)
+;; (global-set-key (kbd "M-n") #'flymake-goto-next-error)
+(global-set-key (kbd "M-p") #'flycheck-previous-error)
+(global-set-key (kbd "M-n") #'flycheck-next-error)
 
 (setq vc-handled-backends
       (remove 'SVN vc-handled-backends))
@@ -555,7 +557,7 @@
   (eglot-send-changes-idle-time 0.8)
   (eglot-code-action-indications '(eldoc-hint))
   (eldoc-idle-delay 0.8)
-  (flymake-no-changes-timeout 1.0)
+  ;;  (flymake-no-changes-timeout 1.0)
   :config
   (dolist (capability '(:documentOnTypeFormattingProvider
                         :inlayHintProvider))
@@ -568,20 +570,39 @@
   (setq eglot-events-buffer-config '(:size 0 :format short)))
 
 ;; Eslint for javascript projects
-(use-package flymake-eslint
-  :pin "melpa"
-  :after (eglot project)
-  :init
-  (setq flymake-eslint-executable-name "eslint_d")
-  :preface
-  (defun my/flymake-eslint-enable()
-    "Enable flymake-eslint after eglot has intialized."
-    (when (derived-mode-p 'js-ts-mode 'tsx-ts-mode)
-      (flymake-eslint-enable)))
-  :hook
-  ;; (jtsx-jsx-mode . flymake-eslint-enable)
-  ;; (js-ts-mode    . flymake-eslint-enable))
-  (eglot-managed-mode . my/flymake-eslint-enable))
+;; (use-package flymake-eslint
+;;   :pin "melpa"
+;;   :after (eglot project)
+;;   :init
+;;   (setq flymake-eslint-executable-name "eslint_d")
+;;   :preface
+;;   (defun my/flymake-eslint-enable()
+;;     "Enable flymake-eslint after eglot has intialized."
+;;     (when (derived-mode-p 'js-ts-mode 'tsx-ts-mode)
+;;       (flymake-eslint-enable)))
+;;   :hook
+;;   ;; (jtsx-jsx-mode . flymake-eslint-enable)
+;;   ;; (js-ts-mode    . flymake-eslint-enable))
+;;   (eglot-managed-mode . my/flymake-eslint-enable))
+
+;; Diagnostics: use Flycheck instead of Flymake for Eglot-managed buffers.
+;; Flycheck 39+ includes its own Eglot bridge; no separate flycheck-eglot
+;; or flymake-eslint package is needed.
+(use-package flycheck
+  :pin "nongnu"
+  :after eglot
+  :custom
+  ;; Combine Eglot diagnostics with the command-line ESLint checker.
+  ;; Set this to t to test Eglot-only diagnostics for maximum responsiveness.
+  (flycheck-eglot-exclusive nil)
+  ;; Keep the eslint_d workflow from the previous flymake-eslint setup.
+  (flycheck-javascript-eslint-executable "eslint_d")
+  ;; Avoid checking immediately every time a newline is inserted.
+  (flycheck-check-syntax-automatically '(save idle-change mode-enabled))
+  (flycheck-idle-change-delay 1.0)
+  :config
+  ;; The bridge enables Flycheck and disables Flymake in Eglot buffers.
+  (global-flycheck-eglot-mode 1))
 
 (use-package htmlize
   :pin "melpa")
